@@ -26,7 +26,7 @@ class SortableModelBehavior extends CActiveRecordBehavior {
 			$number = ($data = $this->createCommand()->select(new CDbExpression('MAX(`order`)'))->queryScalar()) > 0
 				? $data + 1
 				: 1;
-			$this->owner->{$this->orderField} = $number;
+			$this->owner->setAttribute($this->orderField, $number);
 		}
 	}
 
@@ -50,22 +50,22 @@ class SortableModelBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Moves record closed to the top (decreases order field)
+	 * Moves record closer to the top (decreases order field).
 	 */
 	public function moveUp() {
 		if ($this->owner->attributes[$this->orderField] > 1) {
 			if ($this->owner->findByAttributes(array($this->orderField => 0)) !== null)
-				throw new Exception('Table ordering is locked!');
+				throw new Exception('Table order is locked!');
 			if (($externalTransaction = $this->owner->dbConnection->currentTransaction) === null)
 				$transaction = $this->owner->dbConnection->beginTransaction();
 			$position = $this->owner->attributes[$this->orderField];
 			$this->owner->setAttribute($this->orderField, 0);
-			$this->owner->save();
+			$this->owner->save(false, array($this->orderField));
 			$pair = $this->owner->findByAttributes(array($this->orderField => $position - 1));
 			$pair->setAttribute($this->orderField, $position);
-			$pair->save();
+			$pair->save(false, array($this->orderField));
 			$this->owner->setAttribute($this->orderField, $position - 1);
-			$this->owner->save();
+			$this->owner->save(false, array($this->orderField));
 			if ($externalTransaction === null)
 				$transaction->commit();
 			return true;
@@ -73,13 +73,13 @@ class SortableModelBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
-	 * Moves record closed to the bottom (increases order field)
+	 * Moves record closer to the bottom (increases order field).
 	 */
 	public function moveDown() {
 		$count = $this->owner->count();
 		if ($this->owner->attributes[$this->orderField] < $count) {
 			if ($this->owner->findByAttributes(array($this->orderField => 0)) !== null)
-				throw new Exception('Table ordering is locked!');
+				throw new Exception('Table order is locked!');
 			if (($externalTransaction = $this->owner->dbConnection->currentTransaction) === null)
 				$transaction = $this->owner->dbConnection->beginTransaction();
 			$position = $this->owner->attributes[$this->orderField];
