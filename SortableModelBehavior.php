@@ -54,16 +54,15 @@ class SortableModelBehavior extends CActiveRecordBehavior {
 	 */
 	public function moveUp() {
 		if ($this->owner->attributes[$this->orderField] > 1) {
-			if ($this->owner->findByAttributes(array($this->orderField => 0)) !== null)
-				throw new Exception('Table order is locked!');
+			$this->ensureNotLocked();
+			$prev = $this->owner->previous()->find();
 			if (($externalTransaction = $this->owner->dbConnection->currentTransaction) === null)
 				$transaction = $this->owner->dbConnection->beginTransaction();
 			$position = $this->owner->attributes[$this->orderField];
 			$this->owner->setAttribute($this->orderField, 0);
 			$this->owner->save(false, array($this->orderField));
-			$pair = $this->owner->findByAttributes(array($this->orderField => $position - 1));
-			$pair->setAttribute($this->orderField, $position);
-			$pair->save(false, array($this->orderField));
+			$prev->setAttribute($this->orderField, $position);
+			$prev->save(false, array($this->orderField));
 			$this->owner->setAttribute($this->orderField, $position - 1);
 			$this->owner->save(false, array($this->orderField));
 			if ($externalTransaction === null)
@@ -78,16 +77,15 @@ class SortableModelBehavior extends CActiveRecordBehavior {
 	public function moveDown() {
 		$count = $this->owner->count();
 		if ($this->owner->attributes[$this->orderField] < $count) {
-			if ($this->owner->findByAttributes(array($this->orderField => 0)) !== null)
-				throw new Exception('Table order is locked!');
+			$this->ensureNotLocked();
+			$next = $this->owner->next()->find();
 			if (($externalTransaction = $this->owner->dbConnection->currentTransaction) === null)
 				$transaction = $this->owner->dbConnection->beginTransaction();
 			$position = $this->owner->attributes[$this->orderField];
 			$this->owner->setAttribute($this->orderField, 0);
 			$this->owner->save();
-			$pair = $this->owner->findByAttributes(array($this->orderField => $position + 1));
-			$pair->setAttribute($this->orderField, $position);
-			$pair->save();
+			$next->setAttribute($this->orderField, $position);
+			$next->save();
 			$this->owner->setAttribute($this->orderField, $position + 1);
 			$this->owner->save();
 			if ($externalTransaction === null)
@@ -99,7 +97,37 @@ class SortableModelBehavior extends CActiveRecordBehavior {
 	/**
 	 * Creates DB command
 	 */
-	protected function createCommand() {
+	private function createCommand() {
 		return $this->owner->dbConnection->createCommand()->from($this->owner->tableName());
+	}
+
+	/**
+	 * Named scope. Selectes next record.
+	 */
+	public function next() {
+		$this->owner->dbCriteria->mergeWith(array(
+			'condition' => '`'.$this->orderField.'` = :position',
+			'params' => array(':position' => $this->owner->attributes[$this->orderField] + 1)
+		));
+		return $this->owner;
+	}
+
+	/**
+	 * Named scope. Selectes previous record.
+	 */
+	public function previous() {
+		$this->owner->dbCriteria->mergeWith(array(
+			'condition' => '`'.$this->orderField.'` = :position',
+			'params' => array(':position' => $this->owner->attributes[$this->orderField] - 1)
+		));
+		return $this->owner;
+	}
+
+	/**
+	 * Ensures table is not locked
+	 */
+	private function ensureNotLocked() {
+		if ($this->owner->findByAttributes(array($this->orderField => 0)) !== null)
+			throw new Exception('Table order is locked!');
 	}
 }
