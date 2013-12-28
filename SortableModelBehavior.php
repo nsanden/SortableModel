@@ -41,12 +41,16 @@ class SortableModelBehavior extends CActiveRecordBehavior {
 	 * AfterDelete event handler. Updates order.
 	 */
 	public function afterDelete($event) {
-		$this->createCommand()->update(
+		$criteria = new CDbCriteria(array(
+			'condition' => '`'.$this->orderField.'` > :position',
+			'params' => array(':position' => $this->owner->attributes[$this->orderField]),
+			'order' => '`'.$this->orderField.'`',
+		));
+		$this->owner->dbConnection->commandBuilder->createUpdateCommand(
 			$this->owner->tableName(),
 			array($this->orderField => new CDbExpression('`'.$this->orderField.'` - 1')),
-			'`'.$this->orderField.'` > :position',
-			array(':position' => $this->owner->attributes[$this->orderField])
-		);
+			$criteria
+		)->execute();
 	}
 
 	/**
