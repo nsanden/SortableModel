@@ -23,7 +23,7 @@ class SortableModelBehavior extends CActiveRecordBehavior {
 	 */
 	public function beforeSave($event) {
 		if ($this->owner->isNewRecord) {
-			$number = ($data = $this->createCommand()->select(new CDbExpression('MAX(`order`)'))->queryScalar()) > 0
+			$number = ($data = $this->createCommand()->select(new CDbExpression('MAX(`'.$this->orderField.'`)'))->queryScalar()) > 0
 				? $data + 1
 				: 1;
 			$this->owner->setAttribute($this->orderField, $number);
