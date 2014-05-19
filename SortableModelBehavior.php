@@ -18,7 +18,7 @@ class SortableModel extends CActiveRecordBehavior {
      */
     public $orderField = 'order';
     public $condition;
-    public $params;
+    public $params = array();
 
     /**
      * BeforeSave event handler. Sets orderField.
