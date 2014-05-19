@@ -10,7 +10,13 @@ git clone https://github.com/wapmorgan/SortableModel.git protected/extensions/So
 ```php
 public function behaviors() {
 		return array(
-			'SortableModel' => array('class' => 'ext.SortableModel.SortableModelBehavior'),
+			'SortableModel' => array(
+				'class' => 'ext.SortableModel.SortableModelBehavior'
+				/* optional parameters */
+				//'orderField' => 'order',
+				//'condition' => 'user_id = :user_id',
+				//'params' => array(':user_id' => 1)
+			),
 		);
 	}
 ```
